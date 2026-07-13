@@ -1,0 +1,142 @@
+{
+    "name": "AI Email Assistant for a Dental Clinic",
+    "nodes": [
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyMinute"
+                        }
+                    ]
+                },
+                "maxResults": 12,
+                "filters": {}
+            },
+            "type": "n8n-nodes-base.gmailTrigger",
+            "typeVersion": 1.4,
+            "position": [
+                -160,
+                -16
+            ],
+            "id": "d30b9ddc-9b47-4598-ba9d-b99553e9b255",
+            "name": "Gmail Trigger",
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "vFQGH6R2GEVpivit",
+                    "name": "Gmail OAuth2 API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=# ROLE & OBJECTIVE\nYou are an elite AI Customer Support Agent for \"SmileCare Dental Clinic\". Your sole objective is to draft professional, accurate, and concise email responses to customer inquiries based strictly on the provided Clinic Information (Knowledge Base).\n\n# CLINIC INFORMATION (KNOWLEDGE BASE)\n- Clinic Name: SmileCare Dental Clinic\n- Opening Hours: Saturday–Thursday, 9:00 AM – 7:00 PM\n- Friday: Closed\n- Consultation Fee: $20\n- Teeth Whitening: Available\n- Braces Treatment: Available\n- Emergency Service: Available during opening hours\n- Appointment Booking: Call +1 234 567 890\n\n# STRICT CONSTRAINTS & GUARDRAILS\n1. Direct Answers Only: Directly answer the customer's specific questions using only the facts in the Knowledge Base. Do not add fluff.\n2. No Hallucination: Never invent info (e.g., specific doctors, address, insurance policies).\n3. Out-of-Scope Rule (CRITICAL): If the customer asks a question NOT covered in the Knowledge Base (e.g., insurance, pricing for braces, specific dental procedures not listed), you MUST output the exact fallback template provided in the examples below. Do not try to guess or extrapolate.\n4. Output Format:\n\n# EXPECTED OUTPUT FORMAT EXAMPLES\n\n## EXAMPLE 1 (In-Scope Question)\nCustomer Email: Hi, do you offer teeth whitening and what is the consultation fee?\nExpected Output:\nThank you for contacting SmileCare Dental Clinic.\nYes, we offer professional teeth whitening services.\nThe consultation fee is $20.\nIf you would like to book an appointment, please call +1 234 567 890.\nWe look forward to assisting you.\n\n## EXAMPLE 2 (Out-of-Scope / Unknown Question - Bonus Challenge)\nCustomer Email: Do you accept insurance from XYZ Company?\nExpected Output:\nThank you for your inquiry.\nWe do not currently have information regarding that request.\nPlease contact our clinic directly at +1 234 567 890 for assistance.\n\n# CURRENT INCOMING TRANSACTION\nNow, analyze the following customer email and generate the response following the exact format rules above.\n\nCustomer Email: {{ $json.snippet }}\nExpected Output:",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 3.1,
+            "position": [
+                64,
+                -16
+            ],
+            "id": "2c93704b-788f-42ab-8a5d-ccec2d40af70",
+            "name": "AI Agent"
+        },
+        {
+            "parameters": {
+                "modelName": "models/gemini-2.5-flash-lite",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+            "typeVersion": 1.1,
+            "position": [
+                -96,
+                192
+            ],
+            "id": "9e9f2764-f8c8-43b7-a52c-32e24ac6524b",
+            "name": "Google Gemini Chat Model",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "Kmg5IhrVYr2P85g2",
+                    "name": "Google Gemini(PaLM) Api account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "sendTo": "={{ $('Gmail Trigger').item.json.From }}",
+                "subject": "Re: Your Inquiry",
+                "emailType": "text",
+                "message": "={{ $json.output }}",
+                "options": {
+                    "appendAttribution": false
+                }
+            },
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.2,
+            "position": [
+                400,
+                -16
+            ],
+            "id": "1bdc7dd9-9bdc-46c8-83ed-fecb95add115",
+            "name": "Send a message",
+            "webhookId": "2c7b10a1-ab17-4bf2-8641-40f9bda87c88",
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "vFQGH6R2GEVpivit",
+                    "name": "Gmail OAuth2 API"
+                }
+            }
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Gmail Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Gemini Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Send a message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate"
+    },
+    "versionId": "cb6e0891-e9e1-4cad-bf84-d6e7220ea4e6",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "5dcf56229f9241e68871be551ed7d6e0349e14d9db6c6d02ce41607d89e49b95"
+    },
+    "nodeGroups": [],
+    "id": "IyiJEuNlfrDaXFah",
+    "tags": []
+}
