@@ -1,0 +1,509 @@
+{
+  "name": "AI Travel Assistant using MCP in n8n Objective",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nI am your travel assistant Taime. How can I assist you today?",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1168,
+        -1440
+      ],
+      "id": "54974c0f-be27-4239-b7b1-cd0b81f1382c",
+      "name": "When chat message received",
+      "webhookId": "ed022382-b4ef-4863-9ff5-7f6807b33239"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "<system_purpose>\nYou are a concise AI Travel Assistant. Your job is to answer ONLY what the user explicitly asks for by using the relevant MCP tools connected to your workflow. \n</system_purpose>\n\n<mcp_architecture_rules>\nYou are connected to a core Travel MCP Gateway. You MUST invoke only the specific tools requested by the user:\n1. If weather is asked: Call \"Weather_Conditions\". If the user specifies current/recent weather, prioritize \"Current_Weather\"; if they ask for future predictions, route to \"Future_Forecast\".\n2. If attractions or famous places are asked: Call \"Tourist_Attractions\" to fetch the data, which links to \"Tourist_Spots\". \n3. If hotel or accommodation recommendations are asked: Call \"Hotel_Search\" to fetch the recommendations, which links to \"Find_Hotels\".\n4. If restaurants or dining places are asked: Call \"Restuarant_Search\" to fetch local eateries, which links to \"Find_Local_Restaurants\".\n5. If the destination is international or if the user explicitly asks about exchange rates, currency, or money: Call the \"Currency_Exchange\" client and invoke the \"Exchange_Rate\" tool by passing the required base currency code.\n6. If the user wants to know about ALL travel information for a destination: You are permitted to call all relevant tools sequentially or simultaneously to gather the full report.\n</mcp_architecture_rules>\n\n<response_constraints>\n- STRICT RULE: Do not generate answer from your own knowledge  follow instruction, generate sections, bullets, or headers for tools that the user did not explicitly ask for, or tools that returned empty data.\n- Format constraints based on the user's specific request: \n    1. For Attractions: Explicitly mention 2 or 3 famous tourist place names extracted from \"Tourist_Spots\".\n    2. For Weather: Always state the temperature in Celsius (e.g., 28°C) along with the weather condition.\n    3. For Hotels: Suggest top 2 or 3 options from \"Find_Hotels\", adapting the budget tier (Budget / Mid-range / Luxury) strictly based on user preferences.\n    4. For Restaurants: Suggest 2 or 3 of the best local dining places returned by \"Find_Local_Restaurants\".\n    5. For Currency: Access the \"Exchange_Rate\" tool (which returns rates relative to USD). Extract the conversion rate for the requested currencies (e.g., convert GBP to BDT using USD as the base math: BDT rate / GBP rate) and clearly show the final result to the user (e.g., \"1 GBP = 143 BDT\").\n- Keep the entire final response extremely concise (maximum 3-4 sentences total).\n- Focus strictly on the requested destination. If any tool returns data about other nearby places, IGNORE them completely and extract ONLY the data relevant to the user's specific city/spot.\n- Do not use fixed markdown templates or tables if the data is not explicitly requested. Reply in plain, natural, and short paragraphs.\n</response_constraints>\n\n<memory_and_preferences>\nYou are connected to a Simple Memory node. \n1. If the user mentions any preferences (e.g., preferred budget like Luxury/Mid-range/Budget, dietary restrictions, favorite hotel types, or activity styles), save them to memory immediately.\n2. In all future recommendations, automatically query this memory and prioritize results that match these preferences.\n3. Always subtly acknowledge this personalization in your final response (e.g., \"Matching your preference for mid-range stays, I recommend...\").\n</memory_and_preferences>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -928,
+        -1440
+      ],
+      "id": "8adeffbf-3d05-4547-98c3-1a180806989c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -1296,
+        -880
+      ],
+      "id": "fa42fb9e-e4e9-489e-be1f-21120099bc87",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "path": "d609794a-a55e-49eb-b6a2-3cd24afbf764"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -1456
+      ],
+      "id": "9ca5f32b-faf4-4831-9597-c40c2bc2d0f4",
+      "name": "MCP Server Trigger",
+      "webhookId": "d609794a-a55e-49eb-b6a2-3cd24afbf764"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://towfik.app.n8n.cloud/mcp/d609794a-a55e-49eb-b6a2-3cd24afbf764",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        -1088,
+        -880
+      ],
+      "id": "c7d6f79a-895f-4c5c-8bf6-23e1185ce05c",
+      "name": "Weather_Conditions"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Makes an HTTP request and returns the response dataUse this tool to fetch the current weather conditions for any specific city using the WeatherAPI.",
+        "url": "http://api.weatherapi.com/v1/current.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Name', `The name of the city or location requested by the user for the weather query, for example: Dhaka, London, Barisal.`, 'string') }}",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `Example: q=location or city name.`, 'string') }}"
+            },
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Name', `The API key for WeatherAPI.`, 'string') }}",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', `kye=0c3d7d8cd2de478eb71125557261307`, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        528,
+        -912
+      ],
+      "id": "9a1aeb7a-b450-467a-907a-82d5c5e755b4",
+      "name": "Current_Weather"
+    },
+    {
+      "parameters": {
+        "url": "http://api.weatherapi.com/v1/forecast.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Name', `The name of the city or location requested by the user for the weather query, for example: Dhaka, London, Barisal.`, 'string') }}",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `Example: q=location or city name.`, 'string') }}"
+            },
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Name', `The API key for WeatherAPI.`, 'string') }}",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', `kye=0c3d7d8cd2de478eb71125557261307`, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        736,
+        -912
+      ],
+      "id": "ff8324b3-96cb-49f3-aa06-6772a5f98254",
+      "name": "Future_Forecast"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://towfik.app.n8n.cloud/mcp/d609794a-a55e-49eb-b6a2-3cd24afbf764",
+        "include": "selected",
+        "includeTools": [
+          "Tourist_Spots"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        -496,
+        -896
+      ],
+      "id": "c7452a6d-5413-48e0-92bd-8c6c3f4e9c04",
+      "name": "Tourist_Attractions"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://towfik.app.n8n.cloud/mcp/d609794a-a55e-49eb-b6a2-3cd24afbf764",
+        "include": "selected",
+        "includeTools": [
+          "Find_Hotels"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        -656,
+        -896
+      ],
+      "id": "d740c6b3-a543-4ced-95c6-f5636bc418d6",
+      "name": "Hotel_Search"
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "https://console.apify.com/actors/nwua9Gu5YrADL7ZDj/input?addFromActorId=nwua9Gu5YrADL7ZDj",
+          "mode": "url"
+        },
+        "customBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Input_JSON', `Search for the best local restaurants and dining places in the target city. You must generate a JSON object following this schema. Keep the output clean and limited.\n\nExpected Input JSON:\n  {\n    \"enableCompetitorAnalysis\": false,\n    \"includeWebResults\": false,\n    \"language\": \"en\",\n    \"locationQuery\": \"New York, USA\",\n    \"maxCompetitorsToAnalyze\": 3,\n    \"maxCrawledPlacesPerSearch\": 2,\n    \"maximumLeadsEnrichmentRecords\": 0,\n    \"scrapeContacts\": false,\n    \"scrapeDirectories\": false,\n    \"scrapeImageAuthors\": false,\n    \"scrapeOrderOnline\": false,\n    \"scrapePlaceDetailPage\": false,\n    \"scrapeReviewsPersonalData\": true,\n    \"scrapeSocialMediaProfiles\": {\n        \"facebooks\": false,\n        \"instagrams\": false,\n        \"tiktoks\": false,\n        \"twitters\": false,\n        \"youtubes\": false\n    },\n    \"scrapeTableReservationProvider\": false,\n    \"searchStringsArray\": [\n        \"restaurant\"\n    ],\n    \"skipClosedPlaces\": false,\n    \"verifyLeadsEnrichmentEmails\": false\n}\n\nInstruction: Only identify top-rated local dining spots. Do not scrape menu details, reservation data, or personal reviews to optimize token usage.`, 'json') }}",
+        "timeout": 500,
+        "memory": 2048,
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apifyTool",
+      "typeVersion": 1,
+      "position": [
+        336,
+        -928
+      ],
+      "id": "b17e5daa-53a8-422e-9cec-9402bb06e059",
+      "name": "Find_Local_Restaurants",
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "rsrnVr5o0v3VTRL2",
+          "name": "Apify OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "https://console.apify.com/actors/nwua9Gu5YrADL7ZDj/input?addFromActorId=nwua9Gu5YrADL7ZDj",
+          "mode": "url"
+        },
+        "customBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Input_JSON', `Search for accommodations or hotels based on the target city. You must generate a JSON object matching this schema. Keep 'searchStringsArray' as [\"hotel\"], and strictly limit 'maxCrawledPlacesPerSearch' to 2 or 3 to optimize tokens.\n\nExpected Input JSON Schema:\n{\n    \"enableCompetitorAnalysis\": false,\n    \"includeWebResults\": false,\n    \"language\": \"en\",\n    \"locationQuery\": \"New York, USA\",\n    \"maxCompetitorsToAnalyze\": 3,\n    \"maxCrawledPlacesPerSearch\": 2,\n    \"maximumLeadsEnrichmentRecords\": 0,\n    \"scrapeContacts\": false,\n    \"scrapeDirectories\": false,\n    \"scrapeImageAuthors\": false,\n    \"scrapeOrderOnline\": false,\n    \"scrapePlaceDetailPage\": false,\n    \"scrapeReviewsPersonalData\": true,\n    \"scrapeSocialMediaProfiles\": {\n        \"facebooks\": false,\n        \"instagrams\": false,\n        \"tiktoks\": false,\n        \"twitters\": false,\n        \"youtubes\": false\n    },\n    \"scrapeTableReservationProvider\": false,\n    \"searchStringsArray\": [\n        \"hotel\"\n    ],\n    \"skipClosedPlaces\": false,\n    \"verifyLeadsEnrichmentEmails\": false\n}\n\nInstruction: Analyze the user's budget internally (e.g., Budget/Mid-range/Luxury) but keep the search queries inside 'searchStringsArray' as [\"hotel\"] or [\"resort\"] to scrape Google Maps correctly.`, 'json') }}",
+        "timeout": 500,
+        "memory": 2048,
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apifyTool",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -912
+      ],
+      "id": "3c4fbb74-e585-47b1-879a-0f28967830e4",
+      "name": "Find_Hotels",
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "rsrnVr5o0v3VTRL2",
+          "name": "Apify OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://towfik.app.n8n.cloud/mcp/d609794a-a55e-49eb-b6a2-3cd24afbf764",
+        "include": "selected",
+        "includeTools": [
+          "Find_Local_Restaurants"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        -880,
+        -880
+      ],
+      "id": "fafe5634-9c1e-4993-b2ef-89ec69653b4c",
+      "name": "Restuarant_Search"
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "https://console.apify.com/actors/nwua9Gu5YrADL7ZDj/input?addFromActorId=nwua9Gu5YrADL7ZDj",
+          "mode": "url"
+        },
+        "customBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Input_JSON', `Search for top tourist attractions and famous landmarks in the target city. You must generate a JSON object following this schema. Strictly limit the results to ensure token efficiency.\n\nExpected Input JSON Schema:\n{\n    \"enableCompetitorAnalysis\": false,\n    \"includeWebResults\": false,\n    \"language\": \"en\",\n    \"locationQuery\": \"New York, USA\",\n    \"maxCompetitorsToAnalyze\": 3,\n    \"maxCrawledPlacesPerSearch\": 2,\n    \"maximumLeadsEnrichmentRecords\": 0,\n    \"scrapeContacts\": false,\n    \"scrapeDirectories\": false,\n    \"scrapeImageAuthors\": false,\n    \"scrapeOrderOnline\": false,\n    \"scrapePlaceDetailPage\": false,\n    \"scrapeReviewsPersonalData\": true,\n    \"scrapeSocialMediaProfiles\": {\n        \"facebooks\": false,\n        \"instagrams\": false,\n        \"tiktoks\": false,\n        \"twitters\": false,\n        \"youtubes\": false\n    },\n    \"scrapeTableReservationProvider\": false,\n    \"searchStringsArray\": [\n        \"tourist place\"\n    ],\n    \"skipClosedPlaces\": false,\n    \"verifyLeadsEnrichmentEmails\": false\n}\nInstruction: Focus only on identifying 2-3 iconic famous place, landmarks or attractions. Do not scrape detailed reviews or personal data to save tokens.`, 'json') }}",
+        "timeout": 500,
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apifyTool",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -912
+      ],
+      "id": "8eb30a29-6f70-4e74-826c-bf27e2dd2263",
+      "name": "Tourist_Spots",
+      "notesInFlow": false,
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "rsrnVr5o0v3VTRL2",
+          "name": "Apify OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://towfik.app.n8n.cloud/mcp/d609794a-a55e-49eb-b6a2-3cd24afbf764",
+        "include": "selected",
+        "includeTools": [
+          "Exchange_Rate"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        -320,
+        -896
+      ],
+      "id": "7d7ff9c9-91be-47eb-8a19-597b13200c5c",
+      "name": "Currency_Exchange"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Fetches the latest currency exchange rates. Input requires 'base' currency code (e.g., USD) to get conversion rates.",
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', `https://open.er-api.com/v6/latest/USD`, 'string') }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Name', `The base currency code.`, 'string') }}",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `The base currency code, e.g., USD, EUR, or BDT.`, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        912,
+        -880
+      ],
+      "id": "cf9d16ae-1908-4ec1-9ac9-3e04b6601bb1",
+      "name": "Exchange_Rate"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1504,
+        -880
+      ],
+      "id": "e5e2e125-5a61-4046-9757-b44c899f1cbd",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "gDQ6PTdW2uHlWI16",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather_Conditions": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Current_Weather": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Future_Forecast": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tourist_Attractions": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hotel_Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find_Local_Restaurants": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find_Hotels": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restuarant_Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tourist_Spots": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency_Exchange": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exchange_Rate": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6a533780-335d-4353-92d7-ba3e6725003a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cab80257b40a9afadf3eec0ca105bd6564d60231112e178a76202fc6b5f99f87"
+  },
+  "nodeGroups": [],
+  "id": "zLrXJiUngrnOgPO6",
+  "tags": []
+}
